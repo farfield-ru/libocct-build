@@ -1,0 +1,82 @@
+name: Build OCCT
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  OCCT_TAG: V8_0_0_p1
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.build_type }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Release, Debug, RelWithDebInfo]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y
+          }
+
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: ./scripts/build.sh ${{ matrix.build_type }}
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/build.ps1 -BuildType ${{ matrix.build_type }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: occt-${{ env.OCCT_TAG }}-${{ runner.os == 'Windows' && 'windows' || 'linux' }}-x64-${{ matrix.build_type }}
+          path: _work/dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create or update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="occt-${OCCT_TAG}"
+          gh release view "$TAG" >/dev/null 2>&1 || \
+            gh release create "$TAG" \
+              --title "OCCT ${OCCT_TAG} shared libraries" \
+              --notes "OpenCASCADE ${OCCT_TAG} built as shared libraries for Linux (x64) and Windows (x64, MSVC) in Release, Debug and RelWithDebInfo configurations. Modules: FoundationClasses, ModelingData, ModelingAlgorithms, DataExchange, ApplicationFramework, Visualization (headless). All USE_* options disabled except USE_EIGEN."
+          gh release upload "$TAG" dist/* --clobber
