@@ -37,6 +37,18 @@ downloaded automatically during the build). Consequences worth knowing:
   built only to satisfy link dependencies (structures, selection, presentation
   data), not to open windows or render.
 
+## Patches
+
+`patches/` contains fixes applied on top of the upstream OCCT tag after cloning:
+
+- `0001-fix-poly-mergenodestool-bucket-leak.patch` — fixes a memory leak in
+  `Poly_MergeNodesTool::MergedNodesMap` (bucket arrays allocated via
+  `NCollection_BaseMap::BeginResize` were never freed because the class had no
+  destructor calling `Destroy`). The leak occurred on every STL/OBJ/mesh read
+  and scaled with mesh size; see
+  [issue #1](https://github.com/farfield-ru/libocct-build/issues/1). Present in
+  upstream master as of 2026-07-11.
+
 ## Local build
 
 Linux:

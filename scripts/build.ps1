@@ -35,6 +35,11 @@ New-Item -ItemType Directory -Force -Path $Work, $DistDir | Out-Null
 if (-not (Test-Path $Src)) {
     git clone --depth 1 --branch $OcctTag https://github.com/Open-Cascade-SAS/OCCT.git $Src
     if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }
+    # Local fixes on top of the upstream tag (see patches/*.patch for rationale)
+    foreach ($Patch in Get-ChildItem (Join-Path $Root 'patches/*.patch')) {
+        git -C $Src apply --verbose $Patch.FullName
+        if ($LASTEXITCODE -ne 0) { throw "Failed to apply patch $($Patch.Name)" }
+    }
 }
 
 # Eigen is header-only; OCCT only needs 3RDPARTY_EIGEN_INCLUDE_DIR to point at

@@ -1,0 +1,34 @@
+diff --git a/src/FoundationClasses/TKMath/Poly/Poly_MergeNodesTool.cxx b/src/FoundationClasses/TKMath/Poly/Poly_MergeNodesTool.cxx
+index b0f57f19..fa40eb9d 100644
+--- a/src/FoundationClasses/TKMath/Poly/Poly_MergeNodesTool.cxx
++++ b/src/FoundationClasses/TKMath/Poly/Poly_MergeNodesTool.cxx
+@@ -73,6 +73,15 @@ Poly_MergeNodesTool::MergedNodesMap::MergedNodesMap(const int theNbBuckets)
+ 
+ //=================================================================================================
+ 
++Poly_MergeNodesTool::MergedNodesMap::~MergedNodesMap()
++{
++  // NCollection_BaseMap does not free the bucket arrays in its destructor;
++  // without this call they leak on every Poly_MergeNodesTool instance.
++  Destroy(DataMapNode::delNode, true);
++}
++
++//=================================================================================================
++
+ void Poly_MergeNodesTool::MergedNodesMap::SetMergeTolerance(double theTolerance)
+ {
+   myTolerance = (float)theTolerance;
+diff --git a/src/FoundationClasses/TKMath/Poly/Poly_MergeNodesTool.hxx b/src/FoundationClasses/TKMath/Poly/Poly_MergeNodesTool.hxx
+index 4e682d11..03c2af93 100644
+--- a/src/FoundationClasses/TKMath/Poly/Poly_MergeNodesTool.hxx
++++ b/src/FoundationClasses/TKMath/Poly/Poly_MergeNodesTool.hxx
+@@ -222,6 +222,9 @@ private:
+     //! Main constructor.
+     Standard_EXPORT MergedNodesMap(const int theNbBuckets);
+ 
++    //! Destructor.
++    Standard_EXPORT ~MergedNodesMap();
++
+     //! Return merge angle in radians;
+     double MergeAngle() const { return myAngle; }
+ 

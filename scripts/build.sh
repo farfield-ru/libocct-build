@@ -33,6 +33,10 @@ mkdir -p "$WORK" "$DIST_DIR"
 
 if [ ! -d "$SRC" ]; then
   git clone --depth 1 --branch "$OCCT_TAG" https://github.com/Open-Cascade-SAS/OCCT.git "$SRC"
+  # Local fixes on top of the upstream tag (see patches/*.patch for rationale)
+  for PATCH in "$ROOT"/patches/*.patch; do
+    git -C "$SRC" apply --verbose "$PATCH"
+  done
 fi
 
 # Eigen is header-only; OCCT only needs 3RDPARTY_EIGEN_INCLUDE_DIR to point at
