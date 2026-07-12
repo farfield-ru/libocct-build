@@ -63,10 +63,14 @@ if (-not (Test-Path $EigenDir)) {
 #   Draw - disabled (Tcl/Tk test harness, not needed).
 #
 # All USE_* third-party flags are OFF except USE_EIGEN.
+# BUILD_OPT_PROFILE=Production adds /GF /Gy /Ot /Oy /GL /Oi + /LTCG to the
+# Release configuration only; Debug and RelWithDebInfo are unaffected.
 cmake -S $Src -B $BuildDir -G Ninja `
     -DCMAKE_BUILD_TYPE="$BuildType" `
     -DINSTALL_DIR="$InstallDir" `
     -DBUILD_LIBRARY_TYPE=Shared `
+    -DBUILD_OPT_PROFILE=Production `
+    -DBUILD_USE_PCH=ON `
     -DBUILD_MODULE_FoundationClasses=ON `
     -DBUILD_MODULE_ModelingData=ON `
     -DBUILD_MODULE_ModelingAlgorithms=ON `

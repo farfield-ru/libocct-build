@@ -37,6 +37,20 @@ downloaded automatically during the build). Consequences worth knowing:
   built only to satisfy link dependencies (structures, selection, presentation
   data), not to open windows or render.
 
+### Optimization
+
+- `BUILD_OPT_PROFILE=Production` — OCCT's optimized profile for the **Release**
+  configuration: LTO/whole-program optimization (`-flto` / `/GL /LTCG`), `-O3`,
+  frame-pointer omission, function-level linking, dead-section GC.
+- Linux Release additionally uses `-march=x86-64-v2` (requires an SSE4.2-era
+  CPU, roughly 2009 or newer) and `-flto=auto` (parallel LTO link).
+- `BUILD_USE_PCH=ON` — precompiled headers (build-time only, does not affect
+  the produced binaries).
+- OCCT's `BUILD_RELEASE_DISABLE_EXCEPTIONS` default is left ON: **Release**
+  binaries define `No_Exception`, removing `Standard_OutOfRange`-style checks.
+  This applies to Release only — **RelWithDebInfo keeps all range checks** (and
+  no LTO/`-march` tuning), so use Release, not RelWithDebInfo, for benchmarking.
+
 ## Patches
 
 `patches/` contains fixes applied on top of the upstream OCCT tag after cloning:

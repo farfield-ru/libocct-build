@@ -56,10 +56,25 @@ fi
 #   Draw - disabled (Tcl/Tk test harness, not needed).
 #
 # All USE_* third-party flags are OFF except USE_EIGEN.
+#
+# Release-only codegen tuning:
+#   -march=x86-64-v2 - safe ISA baseline for distributed binaries (~2009+ CPUs).
+#   -flto=auto       - parallelize the LTO link that BUILD_OPT_PROFILE=Production
+#                      enables; GCC's bare -flto runs ltrans jobs serially under
+#                      Ninja (no GNU make jobserver to detect).
+OPT_FLAGS=""
+if [ "$BUILD_TYPE" = "Release" ]; then
+  OPT_FLAGS="-march=x86-64-v2 -flto=auto"
+fi
+
 cmake -S "$SRC" -B "$BUILD_DIR" -G Ninja \
   -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+  -DCMAKE_C_FLAGS="$OPT_FLAGS" \
+  -DCMAKE_CXX_FLAGS="$OPT_FLAGS" \
   -DINSTALL_DIR="$INSTALL_DIR" \
   -DBUILD_LIBRARY_TYPE=Shared \
+  -DBUILD_OPT_PROFILE=Production \
+  -DBUILD_USE_PCH=ON \
   -DBUILD_MODULE_FoundationClasses=ON \
   -DBUILD_MODULE_ModelingData=ON \
   -DBUILD_MODULE_ModelingAlgorithms=ON \
