@@ -48,7 +48,7 @@ jobs:
         run: ./scripts/build.ps1 -BuildType ${{ matrix.build_type }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: occt-${{ env.OCCT_TAG }}-${{ runner.os == 'Windows' && 'windows' || 'linux' }}-x64-${{ matrix.build_type }}
           path: _work/dist/*
