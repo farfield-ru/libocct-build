@@ -7,8 +7,7 @@
 # (CMAKE_CONFIGURATION_TYPES is forced to Release;Debug;RelWithDebInfo).
 #
 # Environment overrides:
-#   OCCT_TAG      - OCCT git tag to build (default: V8_0_0_p1)
-#   EIGEN_VERSION - Eigen version to fetch (default: 3.4.0)
+#   OCCT_TAG - OCCT git tag to build (default: V8_0_0_p1)
 
 set -euo pipefail
 
@@ -19,12 +18,10 @@ case "$BUILD_TYPE" in
 esac
 
 OCCT_TAG="${OCCT_TAG:-V8_0_0_p1}"
-EIGEN_VERSION="${EIGEN_VERSION:-3.4.0}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WORK="$ROOT/_work"
 SRC="$WORK/occt"
-EIGEN_DIR="$WORK/eigen-$EIGEN_VERSION"
 BUILD_DIR="$WORK/build-$BUILD_TYPE"
 INSTALL_DIR="$WORK/install/occt-$BUILD_TYPE"
 DIST_DIR="$WORK/dist"
@@ -39,12 +36,6 @@ if [ ! -d "$SRC" ]; then
   done
 fi
 
-# Eigen is header-only; OCCT only needs 3RDPARTY_EIGEN_INCLUDE_DIR to point at
-# a directory containing the Eigen/ headers, so the unpacked source tree is enough.
-if [ ! -d "$EIGEN_DIR" ]; then
-  curl -fsSL "https://gitlab.com/libeigen/eigen/-/archive/$EIGEN_VERSION/eigen-$EIGEN_VERSION.tar.gz" | tar -xz -C "$WORK"
-fi
-
 # Modules:
 #   FoundationClasses, ModelingData, ModelingAlgorithms - B-REP and geometry/mesh
 #     data structures, queries and manipulation.
@@ -55,7 +46,9 @@ fi
 #     mesh readers; built headless (no OpenGL/X11/FreeType, see USE_* below).
 #   Draw - disabled (Tcl/Tk test harness, not needed).
 #
-# All USE_* third-party flags are OFF except USE_EIGEN.
+# All USE_* third-party flags are OFF. USE_EIGEN is not passed: no toolkit in
+# the open-source OCCT distribution declares CSF_EIGEN, so OCCT force-unsets
+# the flag at configure time and it cannot affect the produced binaries.
 #
 # Release-only codegen tuning:
 #   -march=x86-64-v2 - safe ISA baseline for distributed binaries (~2009+ CPUs).
@@ -83,8 +76,6 @@ cmake -S "$SRC" -B "$BUILD_DIR" -G Ninja \
   -DBUILD_MODULE_Visualization=ON \
   -DBUILD_MODULE_Draw=OFF \
   -DBUILD_DOC_Overview=OFF \
-  -DUSE_EIGEN=ON \
-  -D3RDPARTY_EIGEN_INCLUDE_DIR="$EIGEN_DIR" \
   -DUSE_FREETYPE=OFF \
   -DUSE_TK=OFF \
   -DUSE_FREEIMAGE=OFF \

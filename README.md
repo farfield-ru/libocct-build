@@ -26,8 +26,11 @@ the binaries as GitHub Release assets.
 
 ### Third-party options
 
-Every `USE_*` flag is **OFF** except `USE_EIGEN=ON` (Eigen 3.4.0 headers are
-downloaded automatically during the build). Consequences worth knowing:
+Every `USE_*` flag is **OFF**. `USE_EIGEN` is not passed: no toolkit in the
+open-source OCCT distribution declares `CSF_EIGEN` (the flag exists for
+out-of-tree/commercial toolkits built with OCCT's build system), so OCCT
+force-unsets it at configure time and it cannot affect the binaries.
+Consequences worth knowing:
 
 - No Tcl/Tk, FreeType, FreeImage, FFmpeg, VTK, TBB, OpenVR dependencies —
   the resulting libraries only depend on system runtime libraries.
@@ -77,7 +80,7 @@ Windows (from an *x64 Native Tools* developer prompt, requires Ninja):
 .\scripts\build.ps1 -BuildType Release
 ```
 
-The script clones OCCT, downloads Eigen, configures, builds, installs into
+The script clones OCCT, configures, builds, installs into
 `_work/install/occt-<BuildType>/` and packages an archive into `_work/dist/`.
 
 ## CI

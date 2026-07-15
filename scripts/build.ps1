@@ -9,8 +9,7 @@
 # (CMAKE_CONFIGURATION_TYPES is forced to Release;Debug;RelWithDebInfo).
 #
 # Environment overrides:
-#   OCCT_TAG      - OCCT git tag to build (default: V8_0_0_p1)
-#   EIGEN_VERSION - Eigen version to fetch (default: 3.4.0)
+#   OCCT_TAG - OCCT git tag to build (default: V8_0_0_p1)
 
 param(
     [ValidateSet('Release', 'Debug', 'RelWithDebInfo')]
@@ -20,12 +19,10 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $OcctTag = if ($env:OCCT_TAG) { $env:OCCT_TAG } else { 'V8_0_0_p1' }
-$EigenVersion = if ($env:EIGEN_VERSION) { $env:EIGEN_VERSION } else { '3.4.0' }
 
 $Root = Split-Path -Parent $PSScriptRoot
 $Work = Join-Path $Root '_work'
 $Src = Join-Path $Work 'occt'
-$EigenDir = Join-Path $Work "eigen-$EigenVersion"
 $BuildDir = Join-Path $Work "build-$BuildType"
 $InstallDir = Join-Path $Work "install/occt-$BuildType"
 $DistDir = Join-Path $Work 'dist'
@@ -42,16 +39,6 @@ if (-not (Test-Path $Src)) {
     }
 }
 
-# Eigen is header-only; OCCT only needs 3RDPARTY_EIGEN_INCLUDE_DIR to point at
-# a directory containing the Eigen/ headers, so the unpacked source tree is enough.
-if (-not (Test-Path $EigenDir)) {
-    $EigenArchive = Join-Path $Work "eigen-$EigenVersion.tar.gz"
-    curl.exe -fsSL "https://gitlab.com/libeigen/eigen/-/archive/$EigenVersion/eigen-$EigenVersion.tar.gz" -o $EigenArchive
-    if ($LASTEXITCODE -ne 0) { throw 'Eigen download failed' }
-    tar -xzf $EigenArchive -C $Work
-    if ($LASTEXITCODE -ne 0) { throw 'Eigen extraction failed' }
-}
-
 # Modules:
 #   FoundationClasses, ModelingData, ModelingAlgorithms - B-REP and geometry/mesh
 #     data structures, queries and manipulation.
@@ -62,7 +49,9 @@ if (-not (Test-Path $EigenDir)) {
 #     mesh readers; built headless (no OpenGL/D3D/FreeType, see USE_* below).
 #   Draw - disabled (Tcl/Tk test harness, not needed).
 #
-# All USE_* third-party flags are OFF except USE_EIGEN.
+# All USE_* third-party flags are OFF. USE_EIGEN is not passed: no toolkit in
+# the open-source OCCT distribution declares CSF_EIGEN, so OCCT force-unsets
+# the flag at configure time and it cannot affect the produced binaries.
 # BUILD_OPT_PROFILE=Production adds /GF /Gy /Ot /Oy /GL /Oi + /LTCG to the
 # Release configuration only; Debug and RelWithDebInfo are unaffected.
 cmake -S $Src -B $BuildDir -G Ninja `
@@ -79,8 +68,6 @@ cmake -S $Src -B $BuildDir -G Ninja `
     -DBUILD_MODULE_Visualization=ON `
     -DBUILD_MODULE_Draw=OFF `
     -DBUILD_DOC_Overview=OFF `
-    -DUSE_EIGEN=ON `
-    -D3RDPARTY_EIGEN_INCLUDE_DIR="$EigenDir" `
     -DUSE_FREETYPE=OFF `
     -DUSE_TK=OFF `
     -DUSE_FREEIMAGE=OFF `

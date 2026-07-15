@@ -78,5 +78,5 @@ jobs:
           gh release view "$TAG" >/dev/null 2>&1 || \
             gh release create "$TAG" \
               --title "OCCT ${OCCT_TAG} shared libraries" \
-              --notes "OpenCASCADE ${OCCT_TAG} built as shared libraries for Linux (x64) and Windows (x64, MSVC) in Release, Debug and RelWithDebInfo configurations. Modules: FoundationClasses, ModelingData, ModelingAlgorithms, DataExchange, ApplicationFramework, Visualization (headless). All USE_* options disabled except USE_EIGEN."
+              --notes "OpenCASCADE ${OCCT_TAG} built as shared libraries for Linux (x64) and Windows (x64, MSVC) in Release, Debug and RelWithDebInfo configurations. Modules: FoundationClasses, ModelingData, ModelingAlgorithms, DataExchange, ApplicationFramework, Visualization (headless). All USE_* options disabled."
           gh release upload "$TAG" dist/* --clobber
