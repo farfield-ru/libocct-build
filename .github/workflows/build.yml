@@ -3,6 +3,9 @@ name: Build OCCT
 on:
   push:
     branches: [main]
+    # Doc-only commits cannot change an archive; six lanes is too much to spend
+    # proving that.
+    paths-ignore: ['**.md']
   # PRs are gated. Without this the repo had NO automatic validation at all:
   # the workflow only ran on pushes to main and on manual dispatch, so whether
   # a pull request had ever been built depended on someone remembering to fire
@@ -10,19 +13,24 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Upload the built archives to the release (CLOBBERS the existing assets)'
+        type: boolean
+        default: false
 
 # One in-flight run per ref. Six lanes building OCCT from source is by far the
 # costliest thing this repo does — and with no timeout-minutes set, each lane
 # inherits GitHub's 6-hour default — so a PR pushed three times would otherwise
 # stack 18 of them.
 #
-# cancel-in-progress is deliberately PR-ONLY. A push to main does not just
-# build: its `release` job re-uploads all six assets with --clobber, and
-# cancelling that midway leaves the release holding a MIX of old and new
-# archives under an unchanged tag. Consumers pin by per-asset SHA256
-# (modeuler-ng's cmake/FetchOCCT.cmake does), so that surfaces as a hash
-# mismatch on some platforms and not others, with nothing naming the cause.
-# PR runs are disposable; publishing runs must finish.
+# cancel-in-progress is deliberately PR-ONLY. A publishing run (a dispatch with
+# publish=true) re-uploads all six assets with --clobber, and cancelling that
+# midway leaves the release holding a MIX of old and new archives under an
+# unchanged tag. Consumers pin by per-asset SHA256 (modeuler-ng's
+# cmake/FetchOCCT.cmake does), so that surfaces as a hash mismatch on some
+# platforms and not others, with nothing naming the cause. PR runs are
+# disposable; publishing runs must finish.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -79,7 +87,18 @@ jobs:
   release:
     name: Publish release
     needs: build
-    if: github.ref == 'refs/heads/main'
+    # Publishing is EXPLICIT: dispatch the workflow with publish=true.
+    #
+    # It used to happen on every push to main, so merging ANY commit — a README
+    # fix, a CI tweak — silently re-uploaded all six assets with --clobber. The
+    # archives are not reproducible (tar records mtimes, gzip stamps a
+    # timestamp), so even an identical rebuild changes every SHA256, breaking
+    # consumers that pin by hash with the tag unchanged to explain it. That is
+    # what took modeuler-ng's development branch down and forced its PR #129.
+    #
+    # Now a merge builds and proves the change; shipping it is a separate,
+    # deliberate act — after which consumers re-pin once, on purpose.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
     runs-on: ubuntu-latest
     permissions:
       contents: write

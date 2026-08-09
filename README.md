@@ -85,12 +85,29 @@ The script clones OCCT, configures, builds, installs into
 
 ## CI
 
-`.github/workflows/build.yml` runs a 2 (OS) x 3 (build type) matrix on every push
-to `main` (and on manual dispatch), uploads each build as a workflow artifact, and
-then creates/updates the `occt-V8_0_0_p1` GitHub Release with all six archives.
+`.github/workflows/build.yml` runs a 2 (OS) x 3 (build type) matrix on every pull
+request to `main`, on every push to `main` (doc-only commits excepted), and on
+manual dispatch, uploading each build as a workflow artifact.
+
+**Publishing is separate and explicit.** The release job runs only for a manual
+dispatch with **`publish: true`**, and then creates/updates the
+`occt-V8_0_0_p1` release with all six archives.
+
+That split exists because the archives are **not reproducible** — tar records
+mtimes and gzip stamps a timestamp, so rebuilding identical sources still
+changes every SHA256. While publishing happened on every push to `main`,
+merging any commit at all — a README fix, a CI tweak — silently re-uploaded all
+six assets with `--clobber` and broke every consumer pinning by hash, with the
+tag unchanged to explain it. Consumers do pin by hash: modeuler-ng's
+`cmake/FetchOCCT.cmake` carries a per-asset SHA256, and that failure took its
+`development` branch down once already.
+
+So: merge freely, and ship deliberately.
 
 ## Upgrading OCCT
 
 Change `OCCT_TAG` in `.github/workflows/build.yml` (and the default in
-`scripts/build.sh` / `scripts/build.ps1`), push to `main`, and a new release
-`occt-<tag>` is produced.
+`scripts/build.sh` / `scripts/build.ps1`) and merge to `main`; then dispatch the
+workflow with **`publish: true`** to produce the `occt-<tag>` release. Tell
+consumers to re-pin afterwards — every asset's SHA256 changes on a publish,
+whether or not its contents did.
